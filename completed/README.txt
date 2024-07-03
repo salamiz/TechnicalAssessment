@@ -1,86 +1,37 @@
-# README: Test Case for Testing SSH Connectivity using Password and Key-based Authentication
+### Test Case: Testing SSH Connectivity Using Password and Key-based Authentication
 
-## Test Scenario
+**Test Scenario:** Verify SSH connectivity using both password-based and key-based authentication.
 
-Ensure SSH connectivity and functionality using both password-based and key-based authentication methods.
-
-## Description
-
-This test case aims to verify the SSH connectivity to a remote server using two different authentication methods: password-based authentication and key-based authentication. The test will involve connecting to the remote server, performing a simple command to verify successful login, and disconnecting. This process will be repeated for both authentication methods.
-
-## Setup
-
+#### Setup:
 1. **Environment Preparation:**
-    - Two machines: 
-        - **Client Machine** (where the test will be initiated)
-        - **Server Machine** (remote machine to connect to via SSH)
-    - Ensure the SSH server (OpenSSH) is installed and running on the server machine.
-    - Ensure the SSH client is installed on the client machine.
+    - Ensure the SSH server is installed and running on the target machine.
+    - Create a user account on the target machine with a known password.
+    - Generate an SSH key pair (public and private) on the client machine.
+    - Copy the public key to the `~/.ssh/authorized_keys` file of the user account on the target machine.
 
-2. **Configuration for Password-based Authentication:**
-    - Ensure a user account exists on the server machine.
-    - Note down the username and password for the user account.
+2. **Tools Required:**
+    - SSH client (e.g., `ssh` command or an SSH library like `paramiko` in Python).
+    - SSH server (e.g., `sshd`).
 
-3. **Configuration for Key-based Authentication:**
-    - Generate an SSH key pair on the client machine (if not already generated):
-      ```sh
-      ssh-keygen -t rsa -b 2048
-      ```
-    - Copy the public key to the server machine’s `~/.ssh/authorized_keys` file:
-      ```sh
-      ssh-copy-id username@server_address
-      ```
+#### Test Steps:
+1. **Password-based Authentication:**
+    - Execute the SSH command to connect to the target machine using the user account and password.
+    - Check if the connection is established successfully.
 
-## Tools Used
+2. **Key-based Authentication:**
+    - Execute the SSH command to connect to the target machine using the user account and the private key.
+    - Check if the connection is established successfully.
 
-- SSH client (e.g., OpenSSH client)
-- SSH server (e.g., OpenSSH server)
-- Shell scripting for automation (optional)
+#### Pass/Fail Criteria:
+- **Pass:** 
+    - The SSH connection is established successfully using both password-based and key-based authentication.
+    - The user can execute a simple command (e.g., `ls`) on the target machine without any authentication errors.
+- **Fail:** 
+    - The SSH connection fails using either password-based or key-based authentication.
+    - Authentication errors are encountered during the connection attempt.
 
-## Test Steps
-
-### Password-based Authentication
-
-1. Open a terminal on the client machine.
-2. Attempt to connect to the server using the SSH client and password:
-    ```sh
-    ssh username@server_address
-    ```
-3. When prompted, enter the password.
-4. Run a simple command to verify successful login, such as `hostname` or `whoami`.
-5. Check the command's output to ensure it matches the expected result (e.g., the server's hostname or the logged-in username).
-6. Disconnect from the server:
-    ```sh
-    exit
-    ```
-
-### Key-based Authentication
-
-1. Open a terminal on the client machine.
-2. Attempt to connect to the server using the SSH client and key-based authentication:
-    ```sh
-    ssh username@server_address
-    ```
-3. Ensure no password prompt appears, indicating the key-based authentication is in use.
-4. Run a simple command to verify successful login, such as `hostname` or `whoami`.
-5. Check the command's output to ensure it matches the expected result (e.g., the server's hostname or the logged-in username).
-6. Disconnect from the server:
-    ```sh
-    exit
-    ```
-
-## Teardown
-
-1. Remove the client’s public key from the server’s `~/.ssh/authorized_keys` file (for cleanup purposes).
-2. Ensure no residual connections or open sessions remain between the client and server.
-3. Optionally, delete the generated SSH key pair from the client machine (if it was created specifically for this test).
-
-## Pass/Fail Criteria
-
-- **Pass:**
-    - For password-based authentication, the client connects successfully to the server, runs the verification command, and disconnects without errors.
-    - For key-based authentication, the client connects to the server without a password prompt, runs the verification command, and disconnects without errors.
-
-- **Fail:**
-    - For password-based authentication, any issues such as incorrect password prompt, inability to connect, or errors during command execution.
-    - For key-based authentication, any issues such as key-based authentication failure, unexpected password prompts, inability to connect, or errors during command execution.
+#### Teardown:
+1. **Environment Cleanup:**
+    - Remove the user account from the target machine.
+    - Delete the SSH key pair from the client machine.
+    - Stop the SSH server if it was specifically started for this test.
