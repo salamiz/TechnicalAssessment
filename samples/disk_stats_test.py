@@ -1,6 +1,8 @@
 import subprocess
 import re
+import os
 from time import sleep
+import platform
 
 
 class Disk:
@@ -16,7 +18,12 @@ class Disk:
         Raises:
             RuntimeError: If the disk is not found.
         """
-        output = subprocess.check_output("/proc/partitions").decode()
+        if platform.system() == "Windows":
+            # Windows does not have /proc/partitions, so we skip this check
+            print("Skipping /proc/partitions check on Windows")
+            return
+
+        output = subprocess.check_output(["cat", "/proc/partitions"]).decode()
         if not re.search(rf"\b{self.disk_name}\b", output):
             raise RuntimeError(f"Disk {self.disk_name} not found in /proc/partitions")
 
@@ -27,7 +34,12 @@ class Disk:
         Raises:
             RuntimeError: If the disk is not found.
         """
-        output = subprocess.check_output("/proc/diskstats").decode()
+        if platform.system() == "Windows":
+            # Windows does not have /proc/diskstats, so we skip this check
+            print("Skipping /proc/diskstats check on Windows")
+            return
+
+        output = subprocess.check_output(["cat", "/proc/diskstats"]).decode()
         if not re.search(rf"\b{self.disk_name}\b", output):
             raise RuntimeError(f"Disk {self.disk_name} not found in /proc/diskstats")
 
@@ -38,6 +50,11 @@ class Disk:
         Raises:
             RuntimeError: If the disk directory is not found.
         """
+        if platform.system() == "Windows":
+            # Windows does not have /sys/block, so we skip this check
+            print("Skipping /sys/block check on Windows")
+            return
+
         cmd = ["ls", "/sys/block/*", f"{self.disk_name}*"]
         result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if result.returncode != 0:
@@ -50,6 +67,11 @@ class Disk:
         Raises:
             RuntimeError: If the stat file is empty or non-existent.
         """
+        if platform.system() == "Windows":
+            # Windows does not have /sys/block/$DISK/stat, so we skip this check
+            print("Skipping /sys/block/$DISK/stat check on Windows")
+            return
+
         cmd = ["stat", "-c", "%s", f"/sys/block/{self.disk_name}/stat"]
         result = subprocess.run(cmd)
         if result.returncode != 0:
@@ -65,6 +87,12 @@ class Disk:
             tuple: A tuple containing the baseline statistics from /proc/diskstats 
                    and /sys/block/$DISK/stat.
         """
+        if platform.system() == "Windows":
+            # Windows does not have /proc/diskstats and /sys/block/$DISK/stat, so we skip this step
+            print("Skipping baseline stats collection on Windows")
+            self.proc_stat_begin, self.sys_stat_begin = None, None
+            return self.proc_stat_begin, self.sys_stat_begin
+
         cmd = ["grep", "-w", "-m", "1", self.disk_name, "/proc/diskstats"]
         self.proc_stat_begin = subprocess.check_output(cmd).decode()
         cmd = ["cat", f"/sys/block/{self.disk_name}/stat"]
@@ -75,6 +103,11 @@ class Disk:
         """
         Generates some disk activity using hdparm.
         """
+        if platform.system() == "Windows":
+            # Windows does not have hdparm, so we skip this step
+            print("Skipping disk activity generation on Windows")
+            return
+
         cmd = ["hdparm", "-t", f"/dev/{self.disk_name}"]
         subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
@@ -86,6 +119,11 @@ class Disk:
         Raises:
             RuntimeError: If the statistics haven't changed.
         """
+        if platform.system() == "Windows":
+            # Windows does not have /proc/diskstats and /sys/block/$DISK/stat, so we skip this step
+            print("Skipping stat change verification on Windows")
+            return
+
         cmd = ["grep", "-w", "-m", "1", self.disk_name, "/proc/diskstats"]
         self.proc_stat_end = subprocess.check_output(cmd).decode()
         cmd = ["cat", f"/sys/block/{self.disk_name}/stat"]
