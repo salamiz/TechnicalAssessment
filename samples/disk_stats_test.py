@@ -19,13 +19,15 @@ class Disk:
             RuntimeError: If the disk is not found.
         """
         if platform.system() == "Windows":
-            # Windows does not have /proc/partitions, so we skip this check
-            print("Skipping /proc/partitions check on Windows")
+            print("Info: Skipping /proc/partitions check on Windows")
+            return
+        elif platform.system() == "Darwin":
+            print("Info: Skipping /proc/partitions check on macOS")
             return
 
         output = subprocess.check_output(["cat", "/proc/partitions"]).decode()
         if not re.search(rf"\b{self.disk_name}\b", output):
-            raise RuntimeError(f"Disk {self.disk_name} not found in /proc/partitions")
+            raise RuntimeError(f"Error: Disk {self.disk_name} not found in /proc/partitions")
 
     def check_proc_diskstats(self):
         """
@@ -35,13 +37,15 @@ class Disk:
             RuntimeError: If the disk is not found.
         """
         if platform.system() == "Windows":
-            # Windows does not have /proc/diskstats, so we skip this check
-            print("Skipping /proc/diskstats check on Windows")
+            print("Info: Skipping /proc/diskstats check on Windows")
+            return
+        elif platform.system() == "Darwin":
+            print("Info: Skipping /proc/diskstats check on macOS")
             return
 
         output = subprocess.check_output(["cat", "/proc/diskstats"]).decode()
         if not re.search(rf"\b{self.disk_name}\b", output):
-            raise RuntimeError(f"Disk {self.disk_name} not found in /proc/diskstats")
+            raise RuntimeError(f"Error: Disk {self.disk_name} not found in /proc/diskstats")
 
     def check_sys_block(self):
         """
@@ -51,14 +55,16 @@ class Disk:
             RuntimeError: If the disk directory is not found.
         """
         if platform.system() == "Windows":
-            # Windows does not have /sys/block, so we skip this check
-            print("Skipping /sys/block check on Windows")
+            print("Info: Skipping /sys/block check on Windows")
+            return
+        elif platform.system() == "Darwin":
+            print("Info: Skipping /sys/block check on macOS")
             return
 
         cmd = ["ls", "/sys/block/*", f"{self.disk_name}*"]
         result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if result.returncode != 0:
-            raise RuntimeError(f"Disk {self.disk_name} not found in /sys/block")
+            raise RuntimeError(f"Error: Disk {self.disk_name} not found in /sys/block")
 
     def check_sys_block_stat(self):
         """
@@ -68,15 +74,17 @@ class Disk:
             RuntimeError: If the stat file is empty or non-existent.
         """
         if platform.system() == "Windows":
-            # Windows does not have /sys/block/$DISK/stat, so we skip this check
-            print("Skipping /sys/block/$DISK/stat check on Windows")
+            print("Info: Skipping /sys/block/$DISK/stat check on Windows")
+            return
+        elif platform.system() == "Darwin":
+            print("Info: Skipping /sys/block/$DISK/stat check on macOS")
             return
 
         cmd = ["stat", "-c", "%s", f"/sys/block/{self.disk_name}/stat"]
         result = subprocess.run(cmd)
         if result.returncode != 0:
             raise RuntimeError(
-                f"stat is either empty or non-existent in /sys/block/{self.disk_name}/"
+                f"Error: stat is either empty or non-existent in /sys/block/{self.disk_name}/"
             )
 
     def get_baseline_stats(self):
@@ -88,8 +96,11 @@ class Disk:
                    and /sys/block/$DISK/stat.
         """
         if platform.system() == "Windows":
-            # Windows does not have /proc/diskstats and /sys/block/$DISK/stat, so we skip this step
-            print("Skipping baseline stats collection on Windows")
+            print("Info: Skipping baseline stats collection on Windows")
+            self.proc_stat_begin, self.sys_stat_begin = None, None
+            return self.proc_stat_begin, self.sys_stat_begin
+        elif platform.system() == "Darwin":
+            print("Info: Skipping baseline stats collection on macOS")
             self.proc_stat_begin, self.sys_stat_begin = None, None
             return self.proc_stat_begin, self.sys_stat_begin
 
@@ -104,8 +115,10 @@ class Disk:
         Generates some disk activity using hdparm.
         """
         if platform.system() == "Windows":
-            # Windows does not have hdparm, so we skip this step
-            print("Skipping disk activity generation on Windows")
+            print("Info: Skipping disk activity generation on Windows")
+            return
+        elif platform.system() == "Darwin":
+            print("Info: Skipping disk activity generation on macOS")
             return
 
         cmd = ["hdparm", "-t", f"/dev/{self.disk_name}"]
@@ -120,8 +133,10 @@ class Disk:
             RuntimeError: If the statistics haven't changed.
         """
         if platform.system() == "Windows":
-            # Windows does not have /proc/diskstats and /sys/block/$DISK/stat, so we skip this step
-            print("Skipping stat change verification on Windows")
+            print("Info: Skipping stat change verification on Windows")
+            return
+        elif platform.system() == "Darwin":
+            print("Info: Skipping stat change verification on macOS")
             return
 
         cmd = ["grep", "-w", "-m", "1", self.disk_name, "/proc/diskstats"]
@@ -131,13 +146,13 @@ class Disk:
 
         if self.proc_stat_begin == self.proc_stat_end:
             raise RuntimeError(
-                f"Stats in /proc/diskstats did not change\n{self.proc_stat_begin}\n"
+                f"Error: Stats in /proc/diskstats did not change\n{self.proc_stat_begin}\n"
                 f"{self.proc_stat_end}"
             )
 
         if self.sys_stat_begin == self.sys_stat_end:
             raise RuntimeError(
-                f"Stats in /sys/block/{self.disk_name}/stat did not change\n"
+                f"Error: Stats in /sys/block/{self.disk_name}/stat did not change\n"
                 f"{self.sys_stat_begin}\n{self.sys_stat_end}"
             )
 
@@ -150,7 +165,7 @@ class Disk:
         """
         # Check if the disk appears to be an NVDIMM and skip if so
         if self.disk_name.endswith(self.nvdimm):
-            print(f"Disk {self.disk_name} appears to be an NVDIMM, skipping")
+            print(f"Info: Disk {self.disk_name} appears to be an NVDIMM, skipping")
             return
 
         # Perform all the checks
