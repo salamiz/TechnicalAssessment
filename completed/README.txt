@@ -1,4 +1,7 @@
-### Test Case: Testing SSH Connectivity Using Password and Key-based Authentication
+# Save the test case scenario to a .txt file
+
+test_case_scenario = """
+**Test Case: Testing SSH Connectivity Using Password and Key-based Authentication**
 
 **Test Scenario:** Verify SSH connectivity using both password-based and key-based authentication.
 
@@ -35,3 +38,22 @@
     - Remove the user account from the target machine.
     - Delete the SSH key pair from the client machine.
     - Stop the SSH server if it was specifically started for this test.
+
+**Error Messages:**
+
+- If the setup of the environment fails:
+    - "Error: SSH server is not installed or not running on the target machine."
+    - "Error: User account creation on the target machine failed."
+    - "Error: SSH key pair generation on the client machine failed."
+    - "Error: Copying the public key to the target machine's authorized_keys file failed."
+
+- If password-based authentication fails:
+    - "Error: SSH connection using password-based authentication failed."
+
+- If key-based authentication fails:
+    - "Error: SSH connection using key-based authentication failed."
+
+- If any step is skipped due to the platform-specific limitations (e.g., on Windows):
+    - "Info: Skipping step as it is not applicable on this platform."
+"""
+
