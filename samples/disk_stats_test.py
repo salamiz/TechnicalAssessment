@@ -1,15 +1,24 @@
+"""
+Modules providing functionality for the codebase
+"""
 import subprocess
 import re
-import os
+import sys
 from time import sleep
 import platform
 
-
 class Disk:
+    """
+    Class representing a Disk
+    """
     def __init__(self, disk_name="sda"):
         self.disk_name = disk_name
         self.status = 0
         self.nvdimm = "pmem"
+        self.sys_stat_begin = None
+        self.proc_stat_begin = None
+        self.proc_stat_end = None
+        self.sys_stat_end = None
 
     def check_proc_partitions(self):
         """
@@ -21,7 +30,7 @@ class Disk:
         if platform.system() == "Windows":
             print("Info: Skipping /proc/partitions check on Windows")
             return
-        elif platform.system() == "Darwin":
+        if platform.system() == "Darwin":
             print("Info: Skipping /proc/partitions check on macOS")
             return
 
@@ -39,7 +48,7 @@ class Disk:
         if platform.system() == "Windows":
             print("Info: Skipping /proc/diskstats check on Windows")
             return
-        elif platform.system() == "Darwin":
+        if platform.system() == "Darwin":
             print("Info: Skipping /proc/diskstats check on macOS")
             return
 
@@ -57,12 +66,12 @@ class Disk:
         if platform.system() == "Windows":
             print("Info: Skipping /sys/block check on Windows")
             return
-        elif platform.system() == "Darwin":
+        if platform.system() == "Darwin":
             print("Info: Skipping /sys/block check on macOS")
             return
 
         cmd = ["ls", "/sys/block/*", f"{self.disk_name}*"]
-        result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        result = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
         if result.returncode != 0:
             raise RuntimeError(f"Error: Disk {self.disk_name} not found in /sys/block")
 
@@ -76,12 +85,12 @@ class Disk:
         if platform.system() == "Windows":
             print("Info: Skipping /sys/block/$DISK/stat check on Windows")
             return
-        elif platform.system() == "Darwin":
+        if platform.system() == "Darwin":
             print("Info: Skipping /sys/block/$DISK/stat check on macOS")
             return
 
         cmd = ["stat", "-c", "%s", f"/sys/block/{self.disk_name}/stat"]
-        result = subprocess.run(cmd)
+        result = subprocess.run(cmd, check=True)
         if result.returncode != 0:
             raise RuntimeError(
                 f"Error: stat is either empty or non-existent in /sys/block/{self.disk_name}/"
@@ -99,7 +108,7 @@ class Disk:
             print("Info: Skipping baseline stats collection on Windows")
             self.proc_stat_begin, self.sys_stat_begin = None, None
             return self.proc_stat_begin, self.sys_stat_begin
-        elif platform.system() == "Darwin":
+        if platform.system() == "Darwin":
             print("Info: Skipping baseline stats collection on macOS")
             self.proc_stat_begin, self.sys_stat_begin = None, None
             return self.proc_stat_begin, self.sys_stat_begin
@@ -117,12 +126,12 @@ class Disk:
         if platform.system() == "Windows":
             print("Info: Skipping disk activity generation on Windows")
             return
-        elif platform.system() == "Darwin":
+        if platform.system() == "Darwin":
             print("Info: Skipping disk activity generation on macOS")
             return
 
         cmd = ["hdparm", "-t", f"/dev/{self.disk_name}"]
-        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
 
     def verify_stat_changes(self):
         """
@@ -135,7 +144,7 @@ class Disk:
         if platform.system() == "Windows":
             print("Info: Skipping stat change verification on Windows")
             return
-        elif platform.system() == "Darwin":
+        if platform.system() == "Darwin":
             print("Info: Skipping stat change verification on macOS")
             return
 
@@ -195,4 +204,4 @@ class Disk:
 if __name__ == "__main__":
     disk = Disk()  # Create a Disk object with default settings
     disk.run_test()
-    exit(disk.status)
+    sys.exit(disk.status)
